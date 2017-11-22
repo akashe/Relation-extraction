@@ -16,6 +16,9 @@ class network_settings():
     embedding_size = 50
     num_classes = 40
     num_filter = 10
+    first_layer_units = 40
+    second_layer_units = 40
+    third_layer_units = 40
 
 
 class model():
@@ -47,4 +50,40 @@ class model():
         h1 = tf.nn.relu(tf.nn.bias_add(conv1, tf.Variable(tf.constant(0.1, shape=[settings.num_filter])), name="sentence_part_relu"))
         pooled1 = tf.nn.max_pool(h1, ksize=[1, 1, 1, settings.num_filter], strides=[1, 1, 1, 1], padding='VALID',
                                 name="sentence_part_pool")
+        pooled_outputs.append(pooled1)
+
+    pooled_output = tf.squeeze(tf.concat(concat_dim=1,values=pooled_outputs),squeeze_dims=[-2,-1])
+
+    with tf.name_scope("Fully_connected_nueral_network"):
+        with tf.name_scope("First-layer"):
+            W_first = tf.Variable(tf.truncated_normal([int(pooled_output._shape[-1]),settings.first_layer_units],mean=0.0,stddev=1.0),name = "W_First")
+            b_first = tf.Variable(tf.constant(0.1,shape=[settings.first_layer_units]))
+            hidden_layer_1 = tf.nn.relu(tf.matmul(pooled_output,W_first)+b_first,name="hidden_layer_1_output")
+
+        with tf.name_scope("Second-layer"):
+            W_second = tf.Variable(tf.truncated_normal([settings.first_layer_units,settings.second_layer_units],mean=0.0,stddev=1.0),name="W_Second")
+            b_second = tf.Variable(tf.constant(-0.1,shape=[settings.second_layer_units]))
+            hidden_layer_2 = tf.nn.dropout(tf.nn.relu(tf.matmul(hidden_layer_1,W_second)+b_second,name="hidden_layer_2_output"),keep_prob=0.1)
+
+        with tf.name_scope("Third-layer"):
+            W_third = tf.Variable(tf.truncated_normal([settings.second_layer_units,settings.third_layer_units],mean=0.0,stddev=1.0),name="W_Third")
+            b_third = tf.Variable(tf.constant(-0.1, shape=[settings.third_layer_units]))
+            hidden_layer_3 = tf.nn.dropout(tf.nn.relu(tf.matmul(hidden_layer_1, W_third) + b_third, name="hidden_layer_3_output"),keep_prob=0.1)
+
+    with tf.name_scope("output"):
+        W_output = tf.get_variable("W_output",shape=[settings.third_layer_units,settings.num_classes],initializer=tf.contrib.layers.xavier_initializer())
+        b_output = tf.Variable(tf.constant(0.1,shape=[settings.num_classes]),name="b_output")
+        score = tf.nn.xw_plus_b(hidden_layer_3,W_output,b_output,name="score")
+
+    with tf.name_scope("loss"):
+        loss = tf.nn.softmax_cross_entropy_with_logits(labels=input_y,logits=score)
+        l2_loss = tf.contrib.layers.apply_regularization(regularizer=tf.contrib.layers.l2_regularizer(0.0001),
+                                                              weights_list=tf.trainable_variables())
+        total_loss = loss +l2_loss
+        tf.scalar_summary("total_loss",total_loss)
+
+    with tf.name_scope("accuracy"):
+        accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(score,1),tf.argmax(input_y,1)),"float"),name="accuracy")
+        tf.scalar_summary("accuracy",accuracy)
+
 
