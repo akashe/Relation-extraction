@@ -175,7 +175,7 @@ def train():
     # get_train_data(settings.num_classes,word_to_number)
     # get_test_data(settings.num_classes,word_to_number)
 
-    save_path = "./model/"
+    save_path = "model/"
 
     print("Reading train and test data....")
 
@@ -214,7 +214,7 @@ def train():
 
             for i in range(epochs):
 
-                order = [i for i in range(len(train_x))]
+                order = [o for o in range(len(train_x))]
                 np.random.shuffle(order)
 
                 for j in range(int(len(train_x)/batch_size)):
@@ -231,18 +231,18 @@ def train():
                     _ ,step,loss,accuracy,summary =sess.run([train_op,global_step,model.total_loss,model.accuracy,merged_summary],feed_dict)
                     summary_w.add_summary(summary,step)
 
-                    if global_step % 20 == 0:
+                    if step % 20 == 0:
                         time_str = datetime.datetime.now().isoformat()
-                        print ("{}: step {} , loss {:g}, acc {:g}".format(time_str,global_step,loss,accuracy))
+                        print ("{}: step {} , loss {:g}, acc {:g}".format(time_str,step,loss,accuracy))
 
-                order_test = range(len(test_x))
+                order_test = [w for w in range(len(test_x))]
                 np.random.shuffle(order_test)
                 acc =[]
                 for j in range(int(len(test_x) / test_batch_size)):
                     feed_dict = {}
                     temp_x =[]
                     temp_y =[]
-                    for l in order[test_batch_size*j:min(test_batch_size*(j+1),len(test_y))]:
+                    for l in order_test[test_batch_size*j:min(test_batch_size*(j+1),len(test_y))]:
                         temp_x.append(test_x[l])
                         temp_y.append(test_y[l])
 
@@ -255,6 +255,8 @@ def train():
 
                 if(np.mean(acc)>acc_):
                     acc_ = np.mean(acc)
+                    print('Saving model')
+                    saver.save(sess,save_path,global_step=global_step)
                 print("Epoch: {}, test_Accuracy: {} Max_accuracy: {} ".format(i,np.mean(acc),acc_))
 
 
