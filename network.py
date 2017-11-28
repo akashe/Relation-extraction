@@ -20,7 +20,7 @@ class network_settings():
     second_layer_units = 40
     third_layer_units = 40
     batch_size = 100
-    epochs = 10
+    epochs = 50
     test_batch_size = 1000
 
 class model():
