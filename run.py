@@ -5,27 +5,42 @@ import tensorflow as tf
 import operator
 import pickle
 import datetime
+import os
 
 # TODO create data from word word to number
-# TODO fix sentence len to max len
+# TODO fix sentence len to max len (only while reading test train data)
 
 
 
 def get_word_embeddings():
-    word_to_number = {}
-    embeddings = []
-    with gzip.open("data/vec.txt.gz","rb") as f:
-        for i,line in enumerate(f):
-            if(i!=0):
-                line = line.strip().split()
-                try:
-                    word = line[0].decode('ascii')
-                except UnicodeDecodeError:
-                    continue
-                embeddings.append([float(j) for j in line[1:]])
-                word_to_number[word]= i
-    np.save("data/embeddings.npy",embeddings)
-    return word_to_number
+
+    if (os.listdir("data").__contains__("embeddings.npy")):
+        return pickle.load(open("data/word_to_number","rb"))
+    else:
+        word_to_number = {}
+        embeddings = []
+        dim = 50
+
+        with gzip.open("data/vec.txt.gz","rb") as f:
+            k=0
+            for i,line in enumerate(f):
+                if(i!=0):
+                    line = line.strip().split()
+                    try:
+                        word = line[0].decode('ascii')
+                    except UnicodeDecodeError:
+                        continue
+                    embeddings.append([float(j) for j in line[1:]])
+                    word_to_number[word]= k
+                    k+=1
+            embeddings.append(np.random.normal(size=dim,loc=0,scale=0.05))
+            word_to_number['UNK']=k
+            k+=1
+            embeddings.append(np.random.normal(size=dim, loc=0, scale=0.05))
+            word_to_number['PAD'] = k
+        np.save("data/embeddings.npy",embeddings)
+        pickle.dump(obj=word_to_number,file=open("data/word_to_number","wb"))
+        return word_to_number
 
 def preen_data():
     #reduce number of classes to 15 (excluding NA also)
@@ -34,7 +49,11 @@ def preen_data():
     with gzip.open("data/test.txt.gz","rb") as f:
         for line in f:
             try:
-                relation = (line.decode('ascii').strip().split("\t"))[4]
+                line = (line.decode('ascii').strip().split("\t"))
+                relation = line[4]
+                sentence = line[5]
+                if len(sentence.split(" "))>50:
+                    continue
             except UnicodeDecodeError:
                 continue
             if not relation in relation_to_count:
@@ -45,7 +64,11 @@ def preen_data():
     with gzip.open("data/train.txt.gz","rb") as f:
         for line in f:
             try:
-                relation = (line.decode('ascii').strip().split("\t"))[4]
+                line = (line.decode('ascii').strip().split("\t"))
+                relation = line[4]
+                sentence = line[5]
+                if len(sentence.split(" ")) > 50:
+                    continue
             except UnicodeDecodeError:
                 continue
             if not relation in relation_to_count:
@@ -63,17 +86,25 @@ def preen_data():
         with gzip.open("data/test.txt.gz","rb") as f:
             for line in f:
                 try:
-                    relation = (line.decode('ascii').strip().split("\t"))[4]
+                    line_ = (line.decode('ascii').strip().split("\t"))
+                    relation = line_[4]
+                    sentence = line_[5]
+                    if len(sentence.split(" ")) > 50:
+                        continue
                 except UnicodeDecodeError:
                     continue
                 if relation in top_relations:
                     f_write.write(line)
 
     with gzip.open("data/preened_train.txt.gz","wb") as f_write:
-        with gzip.open("data/test.txt.gz","rb") as f:
+        with gzip.open("data/train.txt.gz","rb") as f:
             for line in f:
                 try:
-                    relation = (line.decode('ascii').strip().split("\t"))[4]
+                    line_ = (line.decode('ascii').strip().split("\t"))
+                    relation = line_[4]
+                    sentence = line_[5]
+                    if len(sentence.split(" ")) > 50:
+                        continue
                 except UnicodeDecodeError:
                     continue
                 if relation in top_relations:
@@ -82,7 +113,7 @@ def preen_data():
         pickle.dump(obj=top_relations,file=f)
 
 
-def get_train_data(num_of_classes):
+def get_train_data(num_of_classes,word_to_number):
     train_x=[]
     train_y=[]
     relations = pickle.load(open("data/relations","rb"))
@@ -92,14 +123,23 @@ def get_train_data(num_of_classes):
             relation = line[4]
             sentence = line[5]
             if relation in relations:
-                train_x.append(sentence)
+                sen = []
+                for word in sentence.strip().split():
+                    if word in word_to_number:
+                        sen.append(word_to_number[word])
+                    else:
+                        sen.append(word_to_number['UNK'])
+                pad_len = 50 - len(sen)
+                for i in range(pad_len):
+                    sen.append(word_to_number['PAD'])
+                train_x.append(sen)
                 label = [ 0 for i in range(num_of_classes)]
                 label[relations[relation]] = 1
                 train_y.append(label)
     np.save("data/train_x.npy",train_x)
     np.save("data/train_y.npy",train_y)
 
-def get_test_data(num_of_classes):
+def get_test_data(num_of_classes,word_to_number):
     test_x = []
     test_y = []
     relations = pickle.load(open("data/relations","rb"))
@@ -109,7 +149,16 @@ def get_test_data(num_of_classes):
             relation = line[4]
             sentence = line[5]
             if relation in relations:
-                test_x.append(sentence)
+                sen = []
+                for word in sentence.strip().split():
+                    if word in word_to_number:
+                        sen.append(word_to_number[word])
+                    else:
+                        sen.append(word_to_number['UNK'])
+                pad_len = 50 - len(sen)
+                for i in range(pad_len):
+                    sen.append(word_to_number['PAD'])
+                test_x.append(sen)
                 label = [0 for i in range(num_of_classes)]
                 label[relations[relation]] = 1
                 test_y.append(label)
@@ -121,10 +170,10 @@ def get_model():
     return model
 
 def train():
-    # word_embeddings = get_word_embeddings()
+    # word_to_number = get_word_embeddings()
     # settings = network.network_settings()
-    # get_train_data(settings.num_classes)
-    # get_test_data(settings.num_classes)
+    # get_train_data(settings.num_classes,word_to_number)
+    # get_test_data(settings.num_classes,word_to_number)
 
     save_path = "./model/"
 
@@ -161,12 +210,14 @@ def train():
             num_classs = model.settings.num_classes
             epochs = model.settings.epochs
 
+            acc_= 0
+
             for i in range(epochs):
 
-                order = range(len(train_x))
+                order = [i for i in range(len(train_x))]
                 np.random.shuffle(order)
 
-                for j in range(len(train_x)/batch_size):
+                for j in range(int(len(train_x)/batch_size)):
                     feed_dict ={}
                     temp_x =[]
                     temp_y= []
@@ -177,8 +228,8 @@ def train():
                     feed_dict[model.input_x]=temp_x
                     feed_dict[model.input_y]=temp_y
 
-                    _,global_step,loss,accuracy,summary =sess.run([train_op,global_step,model.total_loss,model.accuracy,merged_summary],feed_dict)
-                    summary_w.add_summary(accuracy,global_step)
+                    _ ,step,loss,accuracy,summary =sess.run([train_op,global_step,model.total_loss,model.accuracy,merged_summary],feed_dict)
+                    summary_w.add_summary(summary,step)
 
                     if global_step % 20 == 0:
                         time_str = datetime.datetime.now().isoformat()
@@ -187,7 +238,7 @@ def train():
                 order_test = range(len(test_x))
                 np.random.shuffle(order_test)
                 acc =[]
-                for j in range(len(test_x) / test_batch_size):
+                for j in range(int(len(test_x) / test_batch_size)):
                     feed_dict = {}
                     temp_x =[]
                     temp_y =[]
@@ -202,21 +253,12 @@ def train():
                         [ model.accuracy], feed_dict)
                     acc.append(accuracy)
 
-                print("Epoch: {}, test_Accuracy: {} ".format(i,np.mean(acc)))
-
-
-
-
-
-
-
-
-
-
-
+                if(np.mean(acc)>acc_):
+                    acc_ = np.mean(acc)
+                print("Epoch: {}, test_Accuracy: {} Max_accuracy: {} ".format(i,np.mean(acc),acc_))
 
 
 train()
 # get_model()
-#preen_data()
+# preen_data()
 

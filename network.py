@@ -39,7 +39,8 @@ class model():
                                 strides=[1, 1, 1, 1], padding="VALID", name="conv")
             h = tf.nn.relu(tf.nn.bias_add(conv,tf.Variable(tf.constant(0.1,shape = [self.settings.num_filter])),name = "relu"))
     
-            pooled = tf.nn.max_pool(h,ksize=[1,1,1,self.settings.num_filter],strides=[1,1,1,1],padding='VALID',name="pool")
+            # pooled = tf.nn.max_pool(h,ksize=[1,1,1,1],strides=[1,1,1,self.settings.num_filter],padding='VALID',name="pool")
+            pooled = tf.reduce_max(h, axis=[-1],keep_dims= True,name="pool")
             pooled_outputs.append(pooled)
     
         with tf.name_scope("parts_of_sentence"):
@@ -51,8 +52,9 @@ class model():
                                             stddev=0.1, dtype=tf.float32)),
                                         strides=[1, self.settings.sen_split_len, 1, 1], padding="VALID", name="sentence_part_conv")
             h1 = tf.nn.relu(tf.nn.bias_add(conv1, tf.Variable(tf.constant(0.1, shape=[self.settings.num_filter])), name="sentence_part_relu"))
-            pooled1 = tf.nn.max_pool(h1, ksize=[1, 1, 1, self.settings.num_filter], strides=[1, 1, 1, 1], padding='VALID',
-                                    name="sentence_part_pool")
+            # pooled1 = tf.nn.max_pool(h1, ksize=[1, 1, 1, self.settings.num_filter], strides=[1, 1, 1, 1], padding='VALID',
+            #                         name="sentence_part_pool")
+            pooled1 = tf.reduce_max(h1, axis=[-1],keep_dims= True,name="sentence_part_pool")
             pooled_outputs.append(pooled1)
     
         pooled_output = tf.squeeze(tf.concat(concat_dim=1,values=pooled_outputs),squeeze_dims=[-2,-1])
@@ -82,11 +84,11 @@ class model():
             self.loss = tf.nn.softmax_cross_entropy_with_logits(labels=self.input_y,logits=score)
             self.l2_loss = tf.contrib.layers.apply_regularization(regularizer=tf.contrib.layers.l2_regularizer(0.0001),
                                                                   weights_list=tf.trainable_variables())
-            self.total_loss = self.loss +self.l2_loss
+            self.total_loss = tf.reduce_mean(self.loss) +self.l2_loss
             tf.scalar_summary("total_loss",self.total_loss)
     
         with tf.name_scope("accuracy"):
             self.accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(score,1),tf.argmax(self.input_y,1)),"float"),name="accuracy")
             tf.scalar_summary("accuracy",self.accuracy)
     
-    
+# m = model()
