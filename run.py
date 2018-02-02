@@ -6,9 +6,13 @@ import operator
 import pickle
 import datetime
 import os
+import capsnet
 
 # TODO create data from word word to number
 # TODO fix sentence len to max len (only while reading test train data)
+# TODO update program to accept command line arguments
+# TODO seperate files for each of functions in this file
+
 
 
 
@@ -44,7 +48,7 @@ def get_word_embeddings():
 
 def preen_data():
     #reduce number of classes to 15 (excluding NA also)
-    reduced_count = 16
+    reduced_count = 16 # [ num_classes + 1]
     relation_to_count ={}
     with gzip.open("data/test.txt.gz","rb") as f:
         for line in f:
@@ -113,10 +117,11 @@ def preen_data():
         pickle.dump(obj=top_relations,file=f)
 
 
-def get_train_data(num_of_classes,word_to_number):
+def get_train_data(word_to_number):
     train_x=[]
     train_y=[]
     relations = pickle.load(open("data/relations","rb"))
+    num_of_classes =  len(relations)
     with gzip.open("data/preened_train.txt.gz","rb") as f:
         for line in f:
             line = line.decode("ascii").strip().split("\t")
@@ -139,10 +144,11 @@ def get_train_data(num_of_classes,word_to_number):
     np.save("data/train_x.npy",train_x)
     np.save("data/train_y.npy",train_y)
 
-def get_test_data(num_of_classes,word_to_number):
+def get_test_data(word_to_number):
     test_x = []
     test_y = []
     relations = pickle.load(open("data/relations","rb"))
+    num_of_classes = len(relations)
     with gzip.open("data/preened_test.txt.gz", "rb") as f:
         for line in f:
             line = line.decode("ascii").strip().split("\t")
@@ -175,7 +181,7 @@ def train():
     # get_train_data(settings.num_classes,word_to_number)
     # get_test_data(settings.num_classes,word_to_number)
 
-    save_path = "model/"
+    save_path = "capsnet_model/"
 
     print("Reading train and test data....")
 
@@ -194,7 +200,10 @@ def train():
 
             intializer = tf.contrib.layers.xavier_initializer()
             with tf.variable_scope("model",initializer=intializer):
-                model = network.model()
+                # for normal networks
+                # model = network.model()
+                # for capsnet
+                model = capsnet.model()
             global_step = tf.Variable(0,name="global_step",trainable=False)
             optimizer = tf.train.AdamOptimizer(0.001)
 
@@ -260,7 +269,14 @@ def train():
                 print("Epoch: {}, test_Accuracy: {} Max_accuracy: {} ".format(i,np.mean(acc),acc_))
 
 
-train()
+##### Check Model
 # get_model()
-# preen_data()
 
+###### Before Training
+# a = get_word_embeddings()
+# preen_data()
+# get_train_data(a)
+# get_test_data(a)
+
+#### For training
+train()
