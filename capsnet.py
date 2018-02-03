@@ -5,6 +5,7 @@ import math
 ######
 #   Capsule network for relation extraction
 #   Current version memory heavy and slow
+#   Model not converging!
 #    ##############
 
 # Notes : First run Obesrvation : model very slow even for just cpu run
@@ -101,6 +102,8 @@ class model():
                 for j in range(self.settings.secondary_layer_size):
                     if len(self.s_)!=j:
                         self.s_[j] = tf.add(self.s_[j],self.uv[i][:,:,:,:,j])
+                        ### Do slicing operations take more time?
+                        ######## Use tf.split here
                     else:
                         self.s_.append(self.uv[i][:,:,:,:,j])
 
@@ -141,9 +144,6 @@ class model():
                     tf.cast(tf.equal(tf.argmax(self.v_magnitude_reshape, 1), tf.argmax(self.input_y, 1)), "float"), name="accuracy")
                 tf.scalar_summary("accuracy", self.accuracy)
 
-
             print ("model ready")
-
-
 
 m = model()
