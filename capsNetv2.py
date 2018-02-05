@@ -9,4 +9,8 @@
 #   e) Design class structure to accomodate multiple layers
 #   f) avoid multiple reshape operations for matmul and tile for mul
 #   g) Not keeping multiple dimensions between.
+#   h) squashed outputs from primary layer
+#   i) seperate squashing for each secondary layer capsule
+#   j) tf loops
+#   k) tf.matmul((..16,1),(..16,1))
 #  ########
