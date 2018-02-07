@@ -23,7 +23,7 @@ class network_settings():
     epochs = 50
     test_batch_size = 1000
     primary_capsule_size = 64
-    primary_capsule_dimension =4
+    primary_capsule_dimension =4 # my assumption was that each 4*4 was a capsule
     primary_capsule_filter = 10
     primary_capsule_width = 16
     weights_i_j = primary_capsule_dimension
@@ -130,8 +130,6 @@ class model():
             ###### Reshape logits ######
 
             self.v_magnitude_reshape = tf.transpose(tf.convert_to_tensor(self.v_magnitude))
-
-
 
             self.loss = tf.nn.softmax_cross_entropy_with_logits(labels=self.input_y, logits=self.v_magnitude_reshape)
             self.l2_loss = tf.contrib.layers.apply_regularization(regularizer=tf.contrib.layers.l2_regularizer(0.0001),

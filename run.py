@@ -6,7 +6,7 @@ import operator
 import pickle
 import datetime
 import os
-import capsnet
+import capsNetv2
 
 # TODO create data from word word to number
 # TODO fix sentence len to max len (only while reading test train data)
@@ -203,7 +203,7 @@ def train():
                 # for normal networks
                 # model = network.model()
                 # for capsnet
-                model = capsnet.model()
+                model = capsNetv2.model()
             global_step = tf.Variable(0,name="global_step",trainable=False)
             optimizer = tf.train.AdamOptimizer(0.001)
 
@@ -211,9 +211,10 @@ def train():
             sess.run(tf.initialize_all_variables())
             saver = tf.train.Saver()
 
-            merged_summary = tf.merge_all_summaries()
-            summary_w = tf.train.SummaryWriter("summary",sess.graph)
-
+            # merged_summary = tf.merge_all_summaries()
+            merged_summary = tf.summary.merge_all()
+            # summary_w = tf.train.SummaryWriter("summary",sess.graph)
+            summary_w = tf.summary.FileWriter("summary", sess.graph)
             batch_size = model.settings.batch_size
             test_batch_size = model.settings.test_batch_size
             num_classs = model.settings.num_classes
@@ -234,8 +235,11 @@ def train():
                         temp_x.append(train_x[l])
                         temp_y.append(train_y[l])
 
-                    feed_dict[model.input_x]=temp_x
-                    feed_dict[model.input_y]=temp_y
+                    # feed_dict[model.input_x]=temp_x
+                    # feed_dict[model.input_y]=temp_y
+
+                    feed_dict[model.x] = temp_x
+                    feed_dict[model.y] = temp_y
 
                     _ ,step,loss,accuracy,summary =sess.run([train_op,global_step,model.total_loss,model.accuracy,merged_summary],feed_dict)
                     summary_w.add_summary(summary,step)
