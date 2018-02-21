@@ -14,8 +14,6 @@ import capsNetv2
 # TODO seperate files for each of functions in this file
 
 
-
-
 def get_word_embeddings():
 
     if (os.listdir("data").__contains__("embeddings.npy")):
@@ -48,7 +46,7 @@ def get_word_embeddings():
 
 def preen_data():
     #reduce number of classes to 15 (excluding NA also)
-    reduced_count = 16 # [ num_classes + 1]
+    reduced_count = 15 # [ num_classes + 1]
     relation_to_count ={}
     with gzip.open("data/test.txt.gz","rb") as f:
         for line in f:
@@ -80,9 +78,13 @@ def preen_data():
             else:
                 relation_to_count[relation]+=1
 
+    ## Removing NA and location contains##
+    relation_to_count.pop('NA')
+    relation_to_count.pop('/location/location/contains')
+
     top_relations = {}
     relation_count = 0
-    for k in sorted(relation_to_count.items(),key= operator.itemgetter(1),reverse=True)[1:reduced_count]:
+    for k in sorted(relation_to_count.items(),key= operator.itemgetter(1),reverse=True)[0:reduced_count]:
         top_relations[k[0]]=relation_count
         relation_count+=1
 
@@ -141,6 +143,8 @@ def get_train_data(word_to_number):
                 label = [ 0 for i in range(num_of_classes)]
                 label[relations[relation]] = 1
                 train_y.append(label)
+    np.save("data/short_train_x.npy",train_x[:1000])
+    np.save("data/short_train_y.npy",train_y[:1000])
     np.save("data/train_x.npy",train_x)
     np.save("data/train_y.npy",train_y)
 
@@ -168,6 +172,8 @@ def get_test_data(word_to_number):
                 label = [0 for i in range(num_of_classes)]
                 label[relations[relation]] = 1
                 test_y.append(label)
+    np.save("data/short_test_x.npy",test_x[:200])
+    np.save("data/short_test_y.npy",test_y[:200])
     np.save("data/test_x.npy", test_x)
     np.save("data/test_y.npy", test_y)
 
@@ -259,8 +265,8 @@ def train():
                         temp_x.append(test_x[l])
                         temp_y.append(test_y[l])
 
-                    feed_dict[model.input_x] = temp_x
-                    feed_dict[model.input_y] = temp_y
+                    feed_dict[model.x] = temp_x
+                    feed_dict[model.y] = temp_y
 
                     accuracy = sess.run(
                         [ model.accuracy], feed_dict)
@@ -277,10 +283,10 @@ def train():
 # get_model()
 
 ###### Before Training
-# a = get_word_embeddings()
-# preen_data()
-# get_train_data(a)
-# get_test_data(a)
+a = get_word_embeddings()
+preen_data()
+get_train_data(a)
+get_test_data(a)
 
 #### For training
-train()
+# train()

@@ -1,26 +1,3 @@
-This project will cover different experiments for relation extraction.
-
-Experiment 1:
-	Simple CNN - 3 conv 3 pool layers fully connected network in the end
-	Glove vectors
-	NYT Corpus
-
-Experiment 2:
-    Capsule Network Implementation [capsnet.py].
-
-Experiment 3:
-    Better, faster and lighter Capsule Network [ capsNetv2.py]
-
-Future Works:
-
-Experiment 4:
-    Multi-gpu architecture for experiments
-
-Experiment 5:
-    Hierarchial networks with Attention for Relation Extraction
-
-Experiment 6:
-    GAN for Relation Extraction
-
-Experiment 7:
-    RL for Relation Extraction
+version https://git-lfs.github.com/spec/v1
+oid sha256:ae5336b17952419fbb074590254af99efff40b1a3cf2778a045b6ae8134013a6
+size 661
