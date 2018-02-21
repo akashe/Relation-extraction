@@ -1,0 +1,32 @@
+This project will cover different experiments for relation extraction.
+
+Experiment 1:
+	Simple CNN - 3 conv 3 pool layers fully connected network in the end
+	Glove vectors
+	NYT Corpus
+
+Experiment 2:
+    Capsule Network Implementation [capsnet.py].
+
+Experiment 3:
+    Better, faster and lighter Capsule Network [ capsNetv2.py]
+
+Experiment 4:
+    Increasing layers in Capsule network
+
+Experiment 5:
+    Memory netwroks
+
+Future Works:
+
+Experiment 6:
+    Multi-gpu architecture for experiments
+
+Experiment 7:
+    Hierarchial networks with Attention for Relation Extraction
+
+Experiment 8:
+    GAN for Relation Extraction
+
+Experiment 9:
+    RL for Relation Extraction
