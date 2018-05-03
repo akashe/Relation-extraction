@@ -12,18 +12,17 @@ Experiment 3:
     Better, faster and lighter Capsule Network [ capsNetv2.py]
 
 Experiment 4:
-    Increasing layers in Capsule network
+    Adding 1*1 convolutions in Experiment 1
 
 Experiment 5:
-    Memory netwroks
-
-Future Works:
+    Hierarchial networks with Attention for Relation Extraction with zero state
+    for each sentence
 
 Experiment 6:
-    Multi-gpu architecture for experiments
+    Increasing layers in Capsule network. Find new way to calc loss. Remove NAN and INF.
 
 Experiment 7:
-    Hierarchial networks with Attention for Relation Extraction
+    Memory networks
 
 Experiment 8:
     GAN for Relation Extraction
