@@ -1,7 +1,9 @@
 import tensorflow as tf
 import numpy as np
 
-
+## Idea:
+## Create a CNN such that with each conv layer, each word can interact with others
+## including convlutions that result in 1 word interacting with the 50th one.
 
 class network_settings():
     max_sen_len = 50  # divisible by 10
@@ -69,7 +71,11 @@ class model():
                                                    ,name="{0}".format(i))
         self.loss = tf.nn.softmax_cross_entropy_with_logits(logits=tf.squeeze(logits),labels=self.input_y)
 
+        tf.scalar_summary('loss',self.loss)
+        ##  Add l2 loss later
         self.accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(logits,1),tf.argmax(self.input_y,1)),'float'),name='accuracy')
+        tf.scalar_summary('accuracy',self.accuracy)
+
 
         print("model ready")
 
@@ -100,4 +106,4 @@ class model():
 
 
 
-m = model()
+# m = model()
