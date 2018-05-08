@@ -10,7 +10,7 @@ class network_settings():
     sen_split_len = 10
     number_of_layers = 3
     embedding_size = 50
-    num_classes = 15
+    num_classes = 40
     num_filter = 10
     first_layer_units = 40
     second_layer_units = 40
@@ -67,17 +67,16 @@ class model():
                 ip_filter_width_size = a
 
         logits = tf.nn.conv2d(ip,tf.Variable(tf.truncated_normal(shape=[self.settings.max_sen_len,ip_filter_width_size,ip_filter_depth_size,self.settings.num_classes]\
-                                                                                      ,stddev = 0.1,dtype = tf.float32)),strides=[1,self.settings.max_sen_len,ip_filter_width_size,ip_filter_depth_size],padding="SAME"\
+                                                                                      ,stddev = 0.1,dtype = tf.float32)),strides=[1,1,1,1],padding="VALID"\
                                                    ,name="{0}".format(i))
-        self.loss = tf.nn.softmax_cross_entropy_with_logits(logits=tf.squeeze(logits),labels=self.input_y)
+        logits = tf.squeeze(logits)
+        self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits,labels=self.input_y))
 
-        tf.scalar_summary('loss',self.loss)
+        tf.summary.histogram('loss',self.loss)
         ##  Add l2 loss later
         self.accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(logits,1),tf.argmax(self.input_y,1)),'float'),name='accuracy')
-        tf.scalar_summary('accuracy',self.accuracy)
+        tf.summary.histogram('accuracy',self.accuracy)
 
-
-        print("model ready")
 
     def get_filter_size(self,nofilter1layer,initial,max_len):  # include stride also later
         filters = []
