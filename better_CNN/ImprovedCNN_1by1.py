@@ -5,6 +5,13 @@ import numpy as np
 ## Create a CNN such that with each conv layer, each word can interact with others
 ## including convlutions that result in 1 word interacting with the 50th one.
 
+## Results:
+# 40 classes, lr = .002, 50 epochs, test accuracy = 56
+# 40 classes, lr = .001 , 50 epochs, test accuracy = 56
+# 40 classes, lr = .01 , 50 epochs, test accuracy = 52
+# 40 classes, lr = .001 , 100 epochs, test accuracy = 50
+
+
 class network_settings():
     max_sen_len = 50  # divisible by 10
     sen_split_len = 10
@@ -16,7 +23,7 @@ class network_settings():
     second_layer_units = 40
     third_layer_units = 40
     batch_size = 100
-    epochs = 50
+    epochs = 100
     test_batch_size = 1000
     initial_filter = 2
     number_of_filter_in_1_layer =2

@@ -343,4 +343,4 @@ def run_model(data_type,lr,epochs,parameter_check,verbose):
 # find_arch_parameters(True,20,[-3.0,1.0])
 
 # Run Model
-run_model("full",0.002,None,False,True)
+run_model("full",0.01,None,False,True)
