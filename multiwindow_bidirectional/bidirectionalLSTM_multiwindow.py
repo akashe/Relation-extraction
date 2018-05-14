@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 
 # Options: create more elusive code using flags,evaluator and graph handler and ? or just go with the flow??
+# Do gradient clipping
 
 class network_settings(object):
     # network properties

@@ -14,11 +14,12 @@ Experiment 3:
 Experiment 4:
     Adding 1*1 convolutions in Experiment 1
 
-============================
-
 Experiment 5:
     Hierarchial networks with Attention for Relation Extraction with zero state
     for each sentence
+    Exploring seq2seq models with attention
+
+============================
 
 Experiment 6:
     Increasing layers in Capsule network. Find new way to calc loss. Remove NAN and INF.
