@@ -32,3 +32,6 @@ Experiment 8:
 
 Experiment 9:
     RL for Relation Extraction
+
+Other Experiments:
+    Combining 2 graphs and keeping only 1 trainable

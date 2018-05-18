@@ -4,6 +4,7 @@ import os
 import pickle
 import gzip
 import operator
+import random
 
 ## Add all these paths in flags
 ## From now instead of using network settings use config
@@ -15,20 +16,36 @@ class Dataset(network_settings):
             self.reduce_data()  # TODO: Better ways for reducing no of classes without manual intervention
         self.left,self.mid,self.right,self.left_seqlen,self.mid_seqlen,self.right_seqlen,self.y = [],[],[],[],[],[],[]
         self.preen(type)
-
+        self.ids = random.sample(list(range(0, len(self.left))) * self.num_epochs, len(self.left) * self.num_epochs)
 
     def get_batch(self):
         ## implement using generator but wait I am sending through list
         ## so I already have the full data
         ## Do something for reading directly from file
-        for i in range(len(self.x)/self.batch_size):
-            yield self.left[i*self.batch_size:(i+1)*self.batch_size],\
-            self.mid[i*self.batch_size:(i+1)*self.batch_size],\
-            self.right[i*self.batch_size:(i+1)*self.batch_size],\
-            self.left_seqlen[i*self.batch_size:(i+1)*self.batch_size],\
-            self.mid_seqlen[i*self.batch_size:(i+1)*self.batch_size],\
-            self.right_seqlen[i*self.batch_size:(i+1)*self.batch_size],\
-            self.y[i*self.batch_size:(i+1)*self.batch_size]
+        ## Another problem with this approach: This gives data only for 1 epoch!!
+        ## Solution : multiply the lists with num of epochs but this wastes using generator
+        for i in range(int(len(self.ids)/self.batch_size)):
+            r1 = i*self.batch_size
+            r2 = (i+1)*self.batch_size
+
+            yield self.get_by_ids(self.left,r1,r2),self.get_by_ids(self.right,r1,r2), \
+                  self.get_by_ids(self.mid, r1, r2),self.get_by_ids(self.left_seqlen,r1,r2), \
+                  self.get_by_ids(self.right_seqlen, r1, r2),self.get_by_ids(self.mid_seqlen,r1,r2), \
+                  self.get_by_ids(self.y, r1, r2)
+
+            # yield self.left[i*self.batch_size:(i+1)*self.batch_size],\
+            # self.mid[i*self.batch_size:(i+1)*self.batch_size],\
+            # self.right[i*self.batch_size:(i+1)*self.batch_size],\
+            # self.left_seqlen[i*self.batch_size:(i+1)*self.batch_size],\
+            # self.mid_seqlen[i*self.batch_size:(i+1)*self.batch_size],\
+            # self.right_seqlen[i*self.batch_size:(i+1)*self.batch_size],\
+            # self.y[i*self.batch_size:(i+1)*self.batch_size]
+
+    def get_by_ids(self,obj,r1,r2):
+        obj_ =[]
+        for i in self.ids[r1:r2]:
+            obj_.append(obj[i])
+        return obj_
 
     def get_pos(self,sentence,e1,e2):
         return sentence.index(e1),sentence.index(e2)
@@ -37,18 +54,21 @@ class Dataset(network_settings):
     def preen(self,type):
         relations = pickle.load(open("../data/relations", "rb")) ## Oh god this is a such a bad flow
         num_of_classes = len(relations)
-        with gzip.open("data/"+type+".txt.gz", "rb") as f:
+        with gzip.open("../data/"+type+".txt.gz", "rb") as f:
             for line in f:
-                line = line.decode("ascii").strip().split("\t")
-                relation = line[4]
-                sentence = line[5]
-                e1 = line[2]
-                e2 = line[3]
+                try:
+                    line = line.decode("ascii").strip().split("\t")
+                    relation = line[4]
+                    sentence = line[5]
+                    e1 = line[2]
+                    e2 = line[3]
+                except UnicodeDecodeError:
+                    continue
                 if relation in relations:
                     try:
                         if sentence.find(e2) == -1 or sentence.find(e1) == -1:
                             raise Exception
-                        if sentence.find(e2) > sentence.find(e1):
+                        if sentence.find(e1) > sentence.find(e2):
                             temp = e1
                             e1 = e2
                             e2 = temp
@@ -56,16 +76,28 @@ class Dataset(network_settings):
                     except Exception:
                         continue
 
-                    left = [self.embeddings(word) if word in self.embeddings else self.embeddings['UNK'] for word in sentence[:e1pos-1].strip().split(" ")] # Adjusting
-                    mid = [self.embeddings(word) if word in self.embeddings else self.embeddings['UNK'] for word in sentence[e1pos+len(e1)-1:e2pos].strip().split(" ")]
-                    right = [self.embeddings(word) if word in self.embeddings else self.embeddings['UNK'] for word in sentence[e2pos+len(e2)-1:].strip().split(" ")]
+                    left = [self.embeddings[word] if word in self.embeddings else self.embeddings['UNK'] for word in sentence[:e1pos-1].strip().split(" ")] # Adjusting
+                    mid = [self.embeddings[word] if word in self.embeddings else self.embeddings['UNK'] for word in sentence[e1pos+len(e1)-1:e2pos].strip().split(" ")]
+                    right = [self.embeddings[word] if word in self.embeddings else self.embeddings['UNK'] for word in sentence[e2pos+len(e2)-1:-1].strip().split(" ")]
 
                     if len(left)>self.max_left_window:
                         continue
+                    else:
+                        pad_len = self.max_left_window - len(left)
+                        pad_value = [self.embeddings['PAD'] for i in range(0,pad_len)]
+                        left+=pad_value
                     if len(mid)>self.max_mid_window:
                         continue
+                    else:
+                        pad_len = self.max_mid_window - len(mid)
+                        pad_value = [self.embeddings['PAD'] for i in range(0, pad_len)]
+                        mid += pad_value
                     if len(right)>self.max_right_window:
                         continue
+                    else:
+                        pad_len = self.max_right_window - len(right)
+                        pad_value = [self.embeddings['PAD'] for i in range(0, pad_len)]
+                        right += pad_value
 
                     self.left.append(left)
                     self.right.append(right)
@@ -99,7 +131,7 @@ class Dataset(network_settings):
 
         top_relations = {}
         relation_count = 0
-        for k in sorted(relation_to_count.items(), key=operator.itemgetter(1), reverse=True)[0:reduced_count]:
+        for k in sorted(relation_to_count.items(), key=operator.itemgetter(1), reverse=True)[0:self.num_classes]:
             top_relations[k[0]] = relation_count
             relation_count += 1
 
@@ -132,7 +164,7 @@ class Dataset(network_settings):
                 embeddings.append(np.random.normal(size=dim, loc=0, scale=0.05))
                 word_to_number['PAD'] = k
             np.save("data/embeddings.npy", embeddings)
-            pickle.dump(obj=word_to_number, file=open("data/word_to_number", "wb"))
+            pickle.dump(obj=word_to_number, file=open("../data/word_to_number", "wb"))
             return word_to_number
 
     def __next__(self):

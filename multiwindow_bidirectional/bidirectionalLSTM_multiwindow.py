@@ -1,8 +1,19 @@
 import tensorflow as tf
 import numpy as np
+from utils import create_if_not_there_dir
+import tqdm
 
 # Options: create more elusive code using flags,evaluator and graph handler and ? or just go with the flow??
 # Do gradient clipping
+
+## Observations:
+# tf.get_Variable doesnt accept a tensor as an initial input .. WTF
+# its better to give a var_Scope to prevent stupid errors while creating
+# back prop variables.
+# giving placeholder directly in feed dict
+
+## Nt sure but do i have to pad till maxlen for lstm??
+
 
 class network_settings(object):
     # network properties
@@ -15,10 +26,12 @@ class network_settings(object):
     hidden_units = 128
 
     # training properties
-    epochs = 100
+    num_epochs = 100
     learning_rate = 0.001
     num_classes = 40
     batch_size = 50
+    eval_period = 50
+    summary_period =10
 
 class model(network_settings):
     def __init__(self):
@@ -64,8 +77,8 @@ class model(network_settings):
         #     logits =
         # Not doing conv coz I just want matrix multiplication
         with tf.name_scope("wx_plus_b"):
-            W = tf.Variable(tf.truncated_normal(shape=[6*self.hidden_units,self.num_classes],mean=0.0,stddev=0.5),name="W")
-            b = tf.Variable(tf.constant(value=-1.0,dtype=tf.float32,shape=[self.num_classes]),name="b")
+            W = tf.Variable(initial_value=tf.truncated_normal(shape=[6*self.hidden_units,self.num_classes],mean=0.0,stddev=0.5),name="W")
+            b = tf.Variable(initial_value=tf.constant(value=-1.0,dtype=tf.float32,shape=[self.num_classes]),name="b")
 
             logits = tf.nn.xw_plus_b(values,weights=W,biases=b)
 
@@ -81,4 +94,75 @@ class model(network_settings):
 
         with tf.name_scope("accuracy"):
             self.acc_ = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(logits,1),tf.argmax(self.y,1)),"float"),name="accuracy")
+
+
+class Graph_Handler(model):
+    def __init__(self,save_path=None,summary_path=None):
+        # model saver,summary saver,global step counter,model load
+        # apply gradients??
+        with tf.variable_scope("model"):
+            super(Graph_Handler,self).__init__()
+            tf.get_variable_scope().reuse_variables()
+        self.save_path = save_path+"model.ckpt"
+        self.summary_path = summary_path
+        if save_path:
+            create_if_not_there_dir(save_path)
+        if summary_path:
+            create_if_not_there_dir(summary_path)
+
+        self.global_step = tf.Variable(0,name="global_step",trainable=False)
+        self.saver = tf.train.Saver()
+        self.writer = tf.summary.FileWriter(self.summary_path)
+        self.summaries = tf.summary.merge_all()
+
+        ## train_op
+        self.optimizer = tf.train.AdamOptimizer(self.learning_rate)
+        self.train_op = self.optimizer.minimize(self.total_loss,global_step=self.global_step)
+
+    def eval(self,sess,dataset):
+        eval_accuracy = []  # This is very bad way of keeping track of test accuracy
+        # Make better architecuture next time
+        for i,data in enumerate(tqdm(dataset.get_batch())):
+            eval_accuracy.append(self.run(sess,data))
+
+        return np.mean(eval_accuracy)
+
+    def run(self,sess,data,summary=None):
+        feed_dict = {}
+        l, r, m, ll, rl, ml, y = data
+        feed_dict[self.left_x] = l
+        feed_dict[self.mid_x] = m
+        feed_dict[self.right_x] = r
+        feed_dict[self.left_seqlen] = ll
+        feed_dict[self.right_seqlen] = rl
+        feed_dict[self.mid_seqlen] = ml
+        feed_dict[self.y] = y
+
+        if summary:
+            # try:
+            _,accuracy,_ = sess.run([self.train_op,self.acc_,self.summaries],feed_dict=feed_dict)
+            # except ValueError:
+            #     print(l)
+            #     print(" ")
+            #     print(r)
+            #     print(" ")
+            #     print(m)
+            #     print(" ")
+            #     print(ll)
+            #     print(" ")
+            #     print(rl)
+            #     print(" ")
+            #     print(ml)
+            #     print(" ")
+            #     print(y)
+        else:
+            _,accuracy = sess.run([self.train_op,self.acc_],feed_dict=feed_dict)
+
+        return accuracy
+
+    def restore(self,sess):
+        self.saver.restore(sess,self.save_path)
+
+    def save(self,sess):
+        self.saver.save(sess,self.save_path)
 
