@@ -15,6 +15,12 @@ import tqdm
 ## Nt sure but do i have to pad till maxlen for lstm??
 
 
+## Accuracies
+# for 40 classes and 0.001 lr and 0.001 l2 after 100 epoch accuracy not greater than 50!!
+
+
+
+
 class network_settings(object):
     # network properties
     max_left_window = 20
@@ -103,7 +109,7 @@ class Graph_Handler(model):
         with tf.variable_scope("model"):
             super(Graph_Handler,self).__init__()
             tf.get_variable_scope().reuse_variables()
-        self.save_path = save_path+"model.ckpt"
+        self.save_path = save_path+"/model.ckpt"
         self.summary_path = summary_path
         if save_path:
             create_if_not_there_dir(save_path)
@@ -122,12 +128,12 @@ class Graph_Handler(model):
     def eval(self,sess,dataset):
         eval_accuracy = []  # This is very bad way of keeping track of test accuracy
         # Make better architecuture next time
-        for i,data in enumerate(tqdm(dataset.get_batch())):
-            eval_accuracy.append(self.run(sess,data))
+        for i,data in enumerate(dataset.get_batch()):
+            eval_accuracy.append(self.run(sess,data,eval=True))
 
         return np.mean(eval_accuracy)
 
-    def run(self,sess,data,summary=None):
+    def run(self,sess,data,summary=None,eval=None,global_step = None):
         feed_dict = {}
         l, r, m, ll, rl, ml, y = data
         feed_dict[self.left_x] = l
@@ -140,29 +146,22 @@ class Graph_Handler(model):
 
         if summary:
             # try:
-            _,accuracy,_ = sess.run([self.train_op,self.acc_,self.summaries],feed_dict=feed_dict)
-            # except ValueError:
-            #     print(l)
-            #     print(" ")
-            #     print(r)
-            #     print(" ")
-            #     print(m)
-            #     print(" ")
-            #     print(ll)
-            #     print(" ")
-            #     print(rl)
-            #     print(" ")
-            #     print(ml)
-            #     print(" ")
-            #     print(y)
+            _,accuracy,summary = sess.run([self.train_op,self.acc_,self.summaries],feed_dict=feed_dict)
+            self.writer.add_summary(summary,global_step)
         else:
             _,accuracy = sess.run([self.train_op,self.acc_],feed_dict=feed_dict)
+
+        if eval:
+            accuracy = sess.run([self.acc_],feed_dict=feed_dict)
 
         return accuracy
 
     def restore(self,sess):
-        self.saver.restore(sess,self.save_path)
+        latest_ckpt = tf.train.latest_checkpoint("save") # TODO remove this hardcode
+        self.saver.restore(sess,latest_ckpt)
 
     def save(self,sess):
         self.saver.save(sess,self.save_path)
 
+    def initialize(self,sess):
+        sess.run(tf.initialize_all_variables())

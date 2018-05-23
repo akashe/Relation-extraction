@@ -16,7 +16,10 @@ class Dataset(network_settings):
             self.reduce_data()  # TODO: Better ways for reducing no of classes without manual intervention
         self.left,self.mid,self.right,self.left_seqlen,self.mid_seqlen,self.right_seqlen,self.y = [],[],[],[],[],[],[]
         self.preen(type)
-        self.ids = random.sample(list(range(0, len(self.left))) * self.num_epochs, len(self.left) * self.num_epochs)
+        if type=="train":
+            self.ids = random.sample(list(range(0, len(self.left))) * self.num_epochs, len(self.left) * self.num_epochs)
+        else:
+            self.ids = list(range(0,len(self.left)))
 
     def get_batch(self):
         ## implement using generator but wait I am sending through list
@@ -128,6 +131,10 @@ class Dataset(network_settings):
                         relation_to_count[relation] = 1
                     else:
                         relation_to_count[relation] += 1
+
+        ## Removing NA and location contains##
+        relation_to_count.pop('NA')
+        relation_to_count.pop('/location/location/contains')
 
         top_relations = {}
         relation_count = 0
